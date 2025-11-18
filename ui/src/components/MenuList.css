@@ -1,0 +1,22 @@
+.menu-list {
+  padding: 2rem;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.menu-list-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .menu-list {
+    padding: 1rem;
+  }
+  
+  .menu-list-container {
+    grid-template-columns: 1fr;
+  }
+}
+
