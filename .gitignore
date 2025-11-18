@@ -1,0 +1,75 @@
+# 의존성
+node_modules/
+**/node_modules/
+
+# 환경 변수 및 비밀 정보
+.env
+.env.local
+.env.*.local
+**/.env
+**/.env.local
+
+# 로그 파일
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+pnpm-debug.log*
+
+# 운영체제 파일
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# IDE 및 에디터 설정
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# 빌드 결과물
+dist/
+build/
+out/
+.next/
+.nuxt/
+.cache/
+*.tsbuildinfo
+
+# 테스트 및 커버리지
+coverage/
+.nyc_output/
+*.lcov
+.jest/
+
+# 임시 파일
+*.pid
+*.seed
+*.pid.lock
+*.tmp
+*.temp
+.cache/
+
+# 데이터베이스
+*.db
+*.sqlite
+*.sqlite3
+
+# 기타
+.vercel
+.netlify
+.env.backup
+
