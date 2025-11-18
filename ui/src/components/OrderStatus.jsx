@@ -2,12 +2,20 @@ import './OrderStatus.css';
 
 function OrderStatus({ orders, onUpdateOrderStatus }) {
   const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    const month = date.getMonth() + 1;
-    const day = date.getDate();
-    const hours = date.getHours();
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    return `${month}월 ${day}일 ${hours}:${minutes}`;
+    try {
+      const date = new Date(dateString);
+      // 유효한 날짜인지 확인
+      if (isNaN(date.getTime())) {
+        return '날짜 정보 없음';
+      }
+      const month = date.getMonth() + 1;
+      const day = date.getDate();
+      const hours = date.getHours();
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      return `${month}월 ${day}일 ${hours}:${minutes}`;
+    } catch (error) {
+      return '날짜 정보 없음';
+    }
   };
 
   const formatPrice = (price) => {

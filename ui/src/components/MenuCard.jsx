@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import './MenuCard.css';
 
-function MenuCard({ menu, onAddToCart }) {
+function MenuCard({ menu, onAddToCart, stock = 0 }) {
   const [selectedOptions, setSelectedOptions] = useState([]);
+  const isProcessing = useRef(false);
+  const isOutOfStock = stock === 0;
 
   const handleOptionChange = (optionId) => {
     setSelectedOptions(prev => {
@@ -14,7 +16,21 @@ function MenuCard({ menu, onAddToCart }) {
     });
   };
 
-  const handleAddToCart = () => {
+  const handleAddToCartClick = (e) => {
+    // 품절이면 담기 불가
+    if (isOutOfStock) {
+      e.preventDefault();
+      return;
+    }
+
+    // 중복 클릭 방지
+    if (isProcessing.current) {
+      e.preventDefault();
+      return;
+    }
+
+    isProcessing.current = true;
+    
     const selectedOptionsData = menu.options.filter(opt => 
       selectedOptions.includes(opt.id)
     );
@@ -29,6 +45,11 @@ function MenuCard({ menu, onAddToCart }) {
 
     // 옵션 초기화
     setSelectedOptions([]);
+
+    // 다음 클릭을 위해 잠금 해제 (짧은 딜레이)
+    setTimeout(() => {
+      isProcessing.current = false;
+    }, 100);
   };
 
   const formatPrice = (price) => {
@@ -36,13 +57,18 @@ function MenuCard({ menu, onAddToCart }) {
   };
 
   return (
-    <div className="menu-card">
+    <div className={`menu-card ${isOutOfStock ? 'out-of-stock' : ''}`}>
       <div className="menu-image">
         {menu.imageUrl ? (
           <img src={menu.imageUrl} alt={menu.name} />
         ) : (
           <div className="image-placeholder">
             <span>이미지</span>
+          </div>
+        )}
+        {isOutOfStock && (
+          <div className="out-of-stock-overlay">
+            <span className="out-of-stock-text">품절</span>
           </div>
         )}
       </div>
@@ -52,11 +78,12 @@ function MenuCard({ menu, onAddToCart }) {
         <p className="menu-description">{menu.description}</p>
         <div className="menu-options">
           {menu.options.map(option => (
-            <label key={option.id} className="option-checkbox">
+            <label key={option.id} className={`option-checkbox ${isOutOfStock ? 'disabled' : ''}`}>
               <input
                 type="checkbox"
                 checked={selectedOptions.includes(option.id)}
                 onChange={() => handleOptionChange(option.id)}
+                disabled={isOutOfStock}
               />
               <span>
                 {option.name} {option.price > 0 ? `(+${formatPrice(option.price)}원)` : '(+0원)'}
@@ -64,8 +91,12 @@ function MenuCard({ menu, onAddToCart }) {
             </label>
           ))}
         </div>
-        <button className="add-to-cart-button" onClick={handleAddToCart}>
-          담기
+        <button 
+          className={`add-to-cart-button ${isOutOfStock ? 'disabled' : ''}`}
+          onClick={handleAddToCartClick}
+          disabled={isOutOfStock}
+        >
+          {isOutOfStock ? '품절' : '담기'}
         </button>
       </div>
     </div>

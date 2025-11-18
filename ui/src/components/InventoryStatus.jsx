@@ -1,8 +1,27 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import './InventoryStatus.css';
 
 function InventoryStatus({ inventory, onUpdateStock }) {
   const [inputValues, setInputValues] = useState({});
+
+  // 재고가 외부에서 변경되면 입력 중인 값도 초기화
+  useEffect(() => {
+    // 입력 중이 아닌 아이템들은 그대로 유지
+    setInputValues(prev => {
+      const newValues = {};
+      Object.keys(prev).forEach(menuId => {
+        // 해당 메뉴가 여전히 입력 중이라면 유지
+        const menu = inventory.find(item => item.menuId === Number(menuId));
+        if (menu) {
+          // 입력 중인 값이 현재 재고와 같지 않으면 유지 (사용자가 직접 변경 중)
+          if (prev[menuId] !== menu.stock.toString()) {
+            newValues[menuId] = prev[menuId];
+          }
+        }
+      });
+      return newValues;
+    });
+  }, [inventory]);
 
   const getStockStatus = (stock) => {
     if (stock === 0) return { text: '품절', className: 'status-out' };
@@ -33,9 +52,17 @@ function InventoryStatus({ inventory, onUpdateStock }) {
       return;
     }
 
+    // 숫자로 변환 (빈 문자열이나 NaN은 0으로 처리)
     const numValue = parseInt(inputValue, 10);
     if (!isNaN(numValue) && numValue >= 0) {
       onUpdateStock(menuId, numValue);
+    } else {
+      // 잘못된 값이면 현재 재고로 복원
+      setInputValues(prev => {
+        const newValues = { ...prev };
+        delete newValues[menuId];
+        return newValues;
+      });
     }
 
     // 입력값 초기화
@@ -46,7 +73,7 @@ function InventoryStatus({ inventory, onUpdateStock }) {
     });
   };
 
-  const handleInputKeyPress = (e, menuId, currentStock) => {
+  const handleInputKeyDown = (e, menuId, currentStock) => {
     if (e.key === 'Enter') {
       handleInputBlur(menuId, currentStock);
       e.target.blur();
@@ -75,10 +102,17 @@ function InventoryStatus({ inventory, onUpdateStock }) {
                         type="number"
                         className="stock-input"
                         value={inputValues[item.menuId]}
-                        onChange={(e) => handleInputChange(item.menuId, e.target.value)}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          // 빈 문자열이거나 숫자만 허용
+                          if (value === '' || /^\d+$/.test(value)) {
+                            handleInputChange(item.menuId, value);
+                          }
+                        }}
                         onBlur={() => handleInputBlur(item.menuId, item.stock)}
-                        onKeyPress={(e) => handleInputKeyPress(e, item.menuId, item.stock)}
+                        onKeyDown={(e) => handleInputKeyDown(e, item.menuId, item.stock)}
                         min="0"
+                        step="1"
                         autoFocus
                       />
                     ) : (

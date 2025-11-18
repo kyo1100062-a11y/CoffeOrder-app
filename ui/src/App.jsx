@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import Header from './components/Header';
 import MenuList from './components/MenuList';
 import ShoppingCart from './components/ShoppingCart';
@@ -12,7 +12,7 @@ const initialMenus = [
     name: '아메리카노(ICE)',
     price: 4000,
     description: '시원하고 깔끔한 아이스 아메리카노',
-    imageUrl: 'https://images.unsplash.com/photo-1517487881594-2787fef5ebf7?w=400&h=300&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=400&h=300&fit=crop',
     options: [
       { id: 1, name: '샷 추가', price: 500 },
       { id: 2, name: '시럽 추가', price: 0 }
@@ -56,7 +56,7 @@ const initialMenus = [
     name: '바닐라라떼',
     price: 5500,
     description: '달콤한 바닐라 시럽이 들어간 라떼',
-    imageUrl: 'https://images.unsplash.com/photo-1570968914860-3eccadae0e4a?w=400&h=300&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1517487881594-2787fef5ebf7?w=400&h=300&fit=crop',
     options: [
       { id: 1, name: '샷 추가', price: 500 },
       { id: 2, name: '시럽 추가', price: 0 }
@@ -67,7 +67,7 @@ const initialMenus = [
     name: '카라멜마키아토',
     price: 6000,
     description: '카라멜 시럽과 에스프레소의 달콤한 만남',
-    imageUrl: 'https://images.unsplash.com/photo-1509042239860-f550c710c120?w=400&h=300&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=400&h=300&fit=crop',
     options: [
       { id: 1, name: '샷 추가', price: 500 },
       { id: 2, name: '시럽 추가', price: 0 }
@@ -75,16 +75,30 @@ const initialMenus = [
   }
 ];
 
+// 주문 데이터를 App 컴포넌트에서 관리하여 주문하기와 관리자 화면 간 공유
+let orderIdCounter = 1;
+
 function App() {
   const [currentPage, setCurrentPage] = useState('order');
   const [menus] = useState(initialMenus);
   const [cartItems, setCartItems] = useState([]);
+  const [orders, setOrders] = useState([]);
+  
+  // 재고 데이터를 App에서 관리하여 영구 저장
+  const [inventory, setInventory] = useState([
+    { menuId: 1, menuName: '아메리카노 (ICE)', stock: 10 },
+    { menuId: 2, menuName: '아메리카노 (HOT)', stock: 10 },
+    { menuId: 3, menuName: '카페라떼', stock: 10 },
+    { menuId: 4, menuName: '카푸치노', stock: 3 },
+    { menuId: 5, menuName: '바닐라라떼', stock: 0 },
+    { menuId: 6, menuName: '카라멜마키아토', stock: 8 }
+  ]);
 
   const handleNavigate = (page) => {
     setCurrentPage(page);
   };
 
-  const handleAddToCart = (item) => {
+  const handleAddToCart = useCallback((item) => {
     setCartItems(prev => {
       // 동일한 메뉴와 옵션 조합 찾기
       const existingIndex = prev.findIndex(cartItem => {
@@ -100,14 +114,17 @@ function App() {
       if (existingIndex !== -1) {
         // 기존 항목의 수량 증가
         const newCart = [...prev];
-        newCart[existingIndex].quantity += 1;
+        newCart[existingIndex] = {
+          ...newCart[existingIndex],
+          quantity: newCart[existingIndex].quantity + 1
+        };
         return newCart;
       } else {
-        // 새 항목 추가
-        return [...prev, item];
+        // 새 항목 추가 (수량은 항상 1로 시작)
+        return [...prev, { ...item, quantity: 1 }];
       }
     });
-  };
+  }, []);
 
   const handleUpdateQuantity = (index, newQuantity) => {
     if (newQuantity < 1) return;
@@ -124,6 +141,40 @@ function App() {
   };
 
   const handleOrder = () => {
+    if (cartItems.length === 0) {
+      return;
+    }
+
+    // 주문 총액 계산
+    const totalPrice = cartItems.reduce((sum, item) => {
+      const optionPrice = item.selectedOptions.reduce((optSum, opt) => optSum + opt.price, 0);
+      return sum + (item.basePrice + optionPrice) * item.quantity;
+    }, 0);
+
+    // 주문 아이템 변환
+    const orderItems = cartItems.map(item => ({
+      menuId: item.menuId,
+      menuName: item.menuName,
+      quantity: item.quantity,
+      price: (item.basePrice + item.selectedOptions.reduce((sum, opt) => sum + opt.price, 0)) * item.quantity,
+      options: item.selectedOptions.map(opt => ({
+        optionId: opt.id,
+        optionName: opt.name
+      }))
+    }));
+
+    // 새 주문 생성
+    const newOrder = {
+      id: orderIdCounter++,
+      orderDate: new Date().toISOString(),
+      items: orderItems,
+      totalPrice: totalPrice,
+      status: '주문 접수'
+    };
+
+    // 주문 목록에 추가
+    setOrders(prev => [newOrder, ...prev]);
+
     // TODO: 백엔드 API 호출
     console.log('주문 데이터:', cartItems);
     setCartItems([]);
@@ -134,7 +185,11 @@ function App() {
       <Header currentPage={currentPage} onNavigate={handleNavigate} />
       {currentPage === 'order' && (
         <>
-          <MenuList menus={menus} onAddToCart={handleAddToCart} />
+          <MenuList 
+            menus={menus} 
+            onAddToCart={handleAddToCart}
+            inventory={inventory}
+          />
           <ShoppingCart
             cartItems={cartItems}
             onUpdateQuantity={handleUpdateQuantity}
@@ -143,7 +198,14 @@ function App() {
           />
         </>
       )}
-      {currentPage === 'admin' && <AdminPage />}
+      {currentPage === 'admin' && (
+        <AdminPage 
+          orders={orders}
+          onUpdateOrders={setOrders}
+          inventory={inventory}
+          onUpdateInventory={setInventory}
+        />
+      )}
     </div>
   );
 }

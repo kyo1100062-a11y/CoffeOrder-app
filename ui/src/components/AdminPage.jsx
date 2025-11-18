@@ -4,7 +4,7 @@ import InventoryStatus from './InventoryStatus';
 import OrderStatus from './OrderStatus';
 import './AdminPage.css';
 
-function AdminPage() {
+function AdminPage({ orders: propsOrders = [], onUpdateOrders, inventory: propsInventory = [], onUpdateInventory }) {
   const [stats, setStats] = useState({
     totalOrders: 0,
     receivedOrders: 0,
@@ -12,48 +12,16 @@ function AdminPage() {
     completedOrders: 0
   });
 
-  const [inventory, setInventory] = useState([]);
-  const [orders, setOrders] = useState([]);
+  // props로 받은 주문 데이터와 재고 데이터 사용
+  const orders = propsOrders || [];
+  const inventory = propsInventory || [];
 
-  // 임시 초기 데이터
+  // 주문 데이터가 변경되면 통계 업데이트
   useEffect(() => {
-    // TODO: 백엔드 API 호출로 대체
-    // 임시 재고 데이터
-    const tempInventory = [
-      { menuId: 1, menuName: '아메리카노 (ICE)', stock: 10 },
-      { menuId: 2, menuName: '아메리카노 (HOT)', stock: 10 },
-      { menuId: 3, menuName: '카페라떼', stock: 10 },
-      { menuId: 4, menuName: '카푸치노', stock: 3 },
-      { menuId: 5, menuName: '바닐라라떼', stock: 0 },
-      { menuId: 6, menuName: '카라멜마키아토', stock: 8 }
-    ];
-
-    // 임시 주문 데이터
-    const tempOrders = [
-      {
-        id: 1,
-        orderDate: new Date().toISOString(),
-        items: [
-          {
-            menuId: 1,
-            menuName: '아메리카노(ICE)',
-            quantity: 1,
-            options: []
-          }
-        ],
-        totalPrice: 4000,
-        status: '주문 접수'
-      }
-    ];
-
-    setInventory(tempInventory);
-    setOrders(tempOrders);
-
-    // 통계 계산
-    const total = tempOrders.length;
-    const received = tempOrders.filter(o => o.status === '주문 접수').length;
-    const inProduction = tempOrders.filter(o => o.status === '제조 중').length;
-    const completed = tempOrders.filter(o => o.status === '제조 완료').length;
+    const total = orders.length;
+    const received = orders.filter(o => o.status === '주문 접수').length;
+    const inProduction = orders.filter(o => o.status === '제조 중').length;
+    const completed = orders.filter(o => o.status === '제조 완료').length;
 
     setStats({
       totalOrders: total,
@@ -61,18 +29,20 @@ function AdminPage() {
       inProductionOrders: inProduction,
       completedOrders: completed
     });
-  }, []);
+  }, [orders]);
 
   const handleUpdateStock = (menuId, newStock) => {
     if (newStock < 0) return;
 
-    setInventory(prev => 
-      prev.map(item => 
-        item.menuId === menuId 
-          ? { ...item, stock: newStock }
-          : item
-      )
-    );
+    if (onUpdateInventory) {
+      onUpdateInventory(prev => 
+        prev.map(item => 
+          item.menuId === menuId 
+            ? { ...item, stock: newStock }
+            : item
+        )
+      );
+    }
 
     // TODO: 백엔드 API 호출
     // await fetch(`/api/admin/stock/${menuId}`, {
@@ -83,28 +53,37 @@ function AdminPage() {
   };
 
   const handleUpdateOrderStatus = (orderId, newStatus) => {
-    setOrders(prev => {
-      const updatedOrders = prev.map(order => 
-        order.id === orderId 
-          ? { ...order, status: newStatus }
-          : order
-      );
-
-      // 통계 업데이트
-      const total = updatedOrders.length;
-      const received = updatedOrders.filter(o => o.status === '주문 접수').length;
-      const inProduction = updatedOrders.filter(o => o.status === '제조 중').length;
-      const completed = updatedOrders.filter(o => o.status === '제조 완료').length;
-
-      setStats({
-        totalOrders: total,
-        receivedOrders: received,
-        inProductionOrders: inProduction,
-        completedOrders: completed
+    if (onUpdateOrders) {
+      // 주문 상태 업데이트
+      onUpdateOrders(prev => {
+        const targetOrder = prev.find(order => order.id === orderId);
+        
+        // 주문 상태가 '제조 완료'로 변경될 때 재고 차감
+        if (targetOrder && targetOrder.status !== '제조 완료' && newStatus === '제조 완료') {
+          // 재고 차감 처리 (주문 상태 업데이트 전에 먼저 처리)
+          if (onUpdateInventory) {
+            onUpdateInventory(prevInventory => {
+              return prevInventory.map(invItem => {
+                // 주문 아이템 중에서 해당 메뉴 찾기
+                const orderItem = targetOrder.items.find(item => item.menuId === invItem.menuId);
+                if (orderItem) {
+                  const newStock = Math.max(0, invItem.stock - orderItem.quantity);
+                  return { ...invItem, stock: newStock };
+                }
+                return invItem;
+              });
+            });
+          }
+        }
+        
+        // 주문 상태 업데이트
+        return prev.map(order => 
+          order.id === orderId 
+            ? { ...order, status: newStatus }
+            : order
+        );
       });
-
-      return updatedOrders;
-    });
+    }
 
     // TODO: 백엔드 API 호출
     // await fetch(`/api/admin/orders/${orderId}/status`, {
