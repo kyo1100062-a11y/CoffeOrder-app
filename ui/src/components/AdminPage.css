@@ -1,0 +1,17 @@
+.admin-page {
+  flex: 1;
+  background-color: #fafafa;
+  padding: 2rem;
+}
+
+.admin-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+  .admin-page {
+    padding: 1rem;
+  }
+}
+

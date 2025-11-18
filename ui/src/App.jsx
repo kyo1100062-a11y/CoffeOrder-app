@@ -2,6 +2,7 @@ import { useState } from 'react';
 import Header from './components/Header';
 import MenuList from './components/MenuList';
 import ShoppingCart from './components/ShoppingCart';
+import AdminPage from './components/AdminPage';
 import './App.css';
 
 // 임시 메뉴 데이터
@@ -81,10 +82,6 @@ function App() {
 
   const handleNavigate = (page) => {
     setCurrentPage(page);
-    // 관리자 페이지는 나중에 구현
-    if (page === 'admin') {
-      alert('관리자 화면은 준비 중입니다.');
-    }
   };
 
   const handleAddToCart = (item) => {
@@ -146,6 +143,7 @@ function App() {
           />
         </>
       )}
+      {currentPage === 'admin' && <AdminPage />}
     </div>
   );
 }
