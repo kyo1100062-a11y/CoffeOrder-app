@@ -1,13 +1,24 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { testConnection } from './config/database.js';
 
-// 환경 변수 로드
-dotenv.config();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// 환경 변수 로드 (.env 파일 경로 명시)
+dotenv.config({ path: path.join(__dirname, '../.env') });
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+
+// PORT 환경 변수 검증
+const PORT = parseInt(process.env.PORT, 10) || 3001;
+if (isNaN(PORT) || PORT < 1 || PORT > 65535) {
+  console.error('❌ PORT 값이 유효하지 않습니다:', process.env.PORT);
+  process.exit(1);
+}
 
 // 미들웨어 설정
 app.use(cors()); // CORS 허용

@@ -1,17 +1,52 @@
 import pg from 'pg';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-dotenv.config();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// .env 파일 경로 명시적으로 지정
+dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 const { Pool } = pg;
 
+// 환경 변수 검증
+const requiredEnvVars = {
+  DB_HOST: process.env.DB_HOST,
+  DB_PORT: process.env.DB_PORT,
+  DB_NAME: process.env.DB_NAME,
+  DB_USER: process.env.DB_USER,
+  DB_PASSWORD: process.env.DB_PASSWORD,
+};
+
+// 누락된 환경 변수 확인
+const missingVars = Object.entries(requiredEnvVars)
+  .filter(([key, value]) => !value || value.trim() === '')
+  .map(([key]) => key);
+
+if (missingVars.length > 0) {
+  console.error('❌ 필수 환경 변수가 누락되었습니다:', missingVars.join(', '));
+  console.error('   server/.env 파일을 확인하고 다음 변수들을 설정하세요:');
+  missingVars.forEach(key => {
+    console.error(`   ${key}=...`);
+  });
+  throw new Error(`필수 환경 변수 누락: ${missingVars.join(', ')}`);
+}
+
+// 포트를 숫자로 변환 및 검증
+const dbPort = parseInt(process.env.DB_PORT, 10);
+if (isNaN(dbPort) || dbPort < 1 || dbPort > 65535) {
+  throw new Error(`DB_PORT는 1-65535 사이의 숫자여야 합니다. (현재: ${process.env.DB_PORT})`);
+}
+
 // PostgreSQL 연결 풀 생성
 const pool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 5432,
-  database: process.env.DB_NAME || 'coffee_order',
-  user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || '',
+  host: process.env.DB_HOST,
+  port: parseInt(process.env.DB_PORT, 10),
+  database: process.env.DB_NAME,
+  user: process.env.DB_USER,
+  password: String(process.env.DB_PASSWORD), // 명시적으로 문자열로 변환
   // 연결 풀 설정
   max: 20, // 최대 연결 수
   idleTimeoutMillis: 30000, // 유휴 연결 타임아웃 (30초)

@@ -8,7 +8,9 @@
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
     "init-db": "node src/database/init.js",
-    "seed": "node src/database/seed.js"
+    "seed": "node src/database/seed.js",
+    "validate-env": "node src/utils/validateEnv.js",
+    "update-images": "node src/utils/updateMenuImages.js"
   },
   "keywords": [
     "express",
