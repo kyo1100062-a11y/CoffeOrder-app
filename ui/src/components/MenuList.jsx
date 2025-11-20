@@ -2,6 +2,18 @@ import MenuCard from './MenuCard';
 import './MenuList.css';
 
 function MenuList({ menus, onAddToCart, inventory = [] }) {
+  if (!menus || menus.length === 0) {
+    return (
+      <section className="menu-list">
+        <div className="menu-list-container">
+          <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
+            메뉴를 불러오는 중...
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="menu-list">
       <div className="menu-list-container">

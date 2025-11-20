@@ -1,6 +1,6 @@
 import './OrderStatus.css';
 
-function OrderStatus({ orders, onUpdateOrderStatus }) {
+function OrderStatus({ orders, onUpdateOrderStatus, onCancelOrder }) {
   const formatDate = (dateString) => {
     try {
       const date = new Date(dateString);
@@ -84,6 +84,18 @@ function OrderStatus({ orders, onUpdateOrderStatus }) {
                 </div>
                 <div className="order-actions">
                   {getStatusButton(order)}
+                  {order.status !== '제조 완료' && (
+                    <button
+                      className="status-button cancel-order"
+                      onClick={() => {
+                        if (window.confirm('정말 주문을 취소하시겠습니까?')) {
+                          onCancelOrder(order.id);
+                        }
+                      }}
+                    >
+                      취소
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

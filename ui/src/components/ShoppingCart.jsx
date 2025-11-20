@@ -19,15 +19,17 @@ function ShoppingCart({ cartItems, onUpdateQuantity, onRemoveItem, onOrder }) {
     return ' (' + item.selectedOptions.map(opt => opt.name).join(', ') + ')';
   };
 
-  const handleOrder = () => {
+  const handleOrder = async () => {
     if (cartItems.length === 0) {
       alert('장바구니가 비어있습니다.');
       return;
     }
     
     if (window.confirm('주문하시겠습니까?')) {
-      onOrder();
-      alert('주문이 완료되었습니다!');
+      const success = await onOrder();
+      if (success) {
+        alert('주문이 완료되었습니다!');
+      }
     }
   };
 

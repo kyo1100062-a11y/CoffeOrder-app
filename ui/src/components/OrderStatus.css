@@ -121,6 +121,15 @@
   cursor: not-allowed;
 }
 
+.status-button.cancel-order {
+  background-color: #f44336;
+  color: #fff;
+}
+
+.status-button.cancel-order:hover {
+  background-color: #d32f2f;
+}
+
 .empty-state {
   text-align: center;
   padding: 3rem;

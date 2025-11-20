@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import AdminDashboard from './AdminDashboard';
 import InventoryStatus from './InventoryStatus';
 import OrderStatus from './OrderStatus';
+import TodayRevenue from './TodayRevenue';
+import { getDashboard, updateStock, updateOrderStatus, getStock, getOrders, cancelOrder, getTodayRevenue } from '../api/adminApi.js';
 import './AdminPage.css';
 
 function AdminPage({ orders: propsOrders = [], onUpdateOrders, inventory: propsInventory = [], onUpdateInventory }) {
@@ -11,86 +13,125 @@ function AdminPage({ orders: propsOrders = [], onUpdateOrders, inventory: propsI
     inProductionOrders: 0,
     completedOrders: 0
   });
+  const [todayRevenue, setTodayRevenue] = useState(0);
 
   // props로 받은 주문 데이터와 재고 데이터 사용
   const orders = propsOrders || [];
   const inventory = propsInventory || [];
 
-  // 주문 데이터가 변경되면 통계 업데이트
+  // 대시보드 통계 및 매출액 로드
   useEffect(() => {
-    const total = orders.length;
-    const received = orders.filter(o => o.status === '주문 접수').length;
-    const inProduction = orders.filter(o => o.status === '제조 중').length;
-    const completed = orders.filter(o => o.status === '제조 완료').length;
+    const loadStats = async () => {
+      try {
+        const dashboardStats = await getDashboard();
+        setStats(dashboardStats);
+      } catch (error) {
+        console.error('대시보드 통계 로드 실패:', error);
+      }
+    };
 
-    setStats({
-      totalOrders: total,
-      receivedOrders: received,
-      inProductionOrders: inProduction,
-      completedOrders: completed
-    });
+    const loadRevenue = async () => {
+      try {
+        const revenue = await getTodayRevenue();
+        setTodayRevenue(revenue);
+      } catch (error) {
+        console.error('당일 매출액 로드 실패:', error);
+      }
+    };
+    
+    loadStats();
+    loadRevenue();
   }, [orders]);
 
-  const handleUpdateStock = (menuId, newStock) => {
+  const handleUpdateStock = async (menuId, newStock) => {
     if (newStock < 0) return;
 
-    if (onUpdateInventory) {
-      onUpdateInventory(prev => 
-        prev.map(item => 
-          item.menuId === menuId 
-            ? { ...item, stock: newStock }
-            : item
-        )
-      );
+    try {
+      // 백엔드 API 호출
+      const updated = await updateStock(menuId, newStock);
+      
+      // 로컬 상태 업데이트
+      if (onUpdateInventory) {
+        onUpdateInventory(prev => 
+          prev.map(item => 
+            item.menuId === menuId 
+              ? { ...item, stock: updated.stock }
+              : item
+          )
+        );
+      }
+    } catch (error) {
+      console.error('재고 업데이트 실패:', error);
+      alert('재고 업데이트에 실패했습니다: ' + error.message);
     }
-
-    // TODO: 백엔드 API 호출
-    // await fetch(`/api/admin/stock/${menuId}`, {
-    //   method: 'PUT',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({ stock: newStock })
-    // });
   };
 
-  const handleUpdateOrderStatus = (orderId, newStatus) => {
-    if (onUpdateOrders) {
-      // 주문 상태 업데이트
-      onUpdateOrders(prev => {
-        const targetOrder = prev.find(order => order.id === orderId);
-        
-        // 주문 상태가 '제조 완료'로 변경될 때 재고 차감
-        if (targetOrder && targetOrder.status !== '제조 완료' && newStatus === '제조 완료') {
-          // 재고 차감 처리 (주문 상태 업데이트 전에 먼저 처리)
-          if (onUpdateInventory) {
-            onUpdateInventory(prevInventory => {
-              return prevInventory.map(invItem => {
-                // 주문 아이템 중에서 해당 메뉴 찾기
-                const orderItem = targetOrder.items.find(item => item.menuId === invItem.menuId);
-                if (orderItem) {
-                  const newStock = Math.max(0, invItem.stock - orderItem.quantity);
-                  return { ...invItem, stock: newStock };
-                }
-                return invItem;
-              });
-            });
-          }
-        }
-        
-        // 주문 상태 업데이트
-        return prev.map(order => 
-          order.id === orderId 
-            ? { ...order, status: newStatus }
-            : order
+  const handleUpdateOrderStatus = async (orderId, newStatus) => {
+    try {
+      // 백엔드 API 호출
+      const updatedOrder = await updateOrderStatus(orderId, newStatus);
+      
+      // 로컬 상태 업데이트
+      if (onUpdateOrders) {
+        onUpdateOrders(prev => 
+          prev.map(order => 
+            order.id === orderId 
+              ? { ...order, status: updatedOrder.status }
+              : order
+          )
         );
-      });
+      }
+      
+      // 재고 정보 새로고침 (제조 완료 시 재고가 차감되었을 수 있음)
+      if (newStatus === '제조 완료') {
+        try {
+          const stockData = await getStock();
+          if (onUpdateInventory) {
+            onUpdateInventory(stockData);
+          }
+        } catch (error) {
+          console.error('재고 정보 새로고침 실패:', error);
+        }
+      }
+      
+      // 통계 및 매출액 새로고침
+      try {
+        const dashboardStats = await getDashboard();
+        setStats(dashboardStats);
+        const revenue = await getTodayRevenue();
+        setTodayRevenue(revenue);
+      } catch (error) {
+        console.error('통계 새로고침 실패:', error);
+      }
+    } catch (error) {
+      console.error('주문 상태 업데이트 실패:', error);
+      alert('주문 상태 업데이트에 실패했습니다: ' + error.message);
     }
+  };
 
-    // TODO: 백엔드 API 호출
-    // await fetch(`/api/admin/orders/${orderId}/status`, {
-    //   method: 'PUT',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({ status: newStatus })
-    // });
+  const handleCancelOrder = async (orderId) => {
+    try {
+      // 백엔드 API 호출
+      await cancelOrder(orderId);
+      
+      // 로컬 상태에서 주문 제거
+      if (onUpdateOrders) {
+        onUpdateOrders(prev => prev.filter(order => order.id !== orderId));
+      }
+      
+      // 통계 및 매출액 새로고침
+      try {
+        const dashboardStats = await getDashboard();
+        setStats(dashboardStats);
+        const revenue = await getTodayRevenue();
+        setTodayRevenue(revenue);
+      } catch (error) {
+        console.error('통계 새로고침 실패:', error);
+      }
+    } catch (error) {
+      console.error('주문 취소 실패:', error);
+      alert('주문 취소에 실패했습니다: ' + error.message);
+    }
   };
 
   return (
@@ -104,7 +145,9 @@ function AdminPage({ orders: propsOrders = [], onUpdateOrders, inventory: propsI
         <OrderStatus 
           orders={orders}
           onUpdateOrderStatus={handleUpdateOrderStatus}
+          onCancelOrder={handleCancelOrder}
         />
+        <TodayRevenue revenue={todayRevenue} />
       </div>
     </div>
   );

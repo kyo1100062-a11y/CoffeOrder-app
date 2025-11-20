@@ -22,10 +22,14 @@ app.get('/', (req, res) => {
   });
 });
 
-// API 라우트 (추후 추가 예정)
-// app.use('/api/menus', menuRoutes);
-// app.use('/api/orders', orderRoutes);
-// app.use('/api/admin', adminRoutes);
+// API 라우트
+import menuRoutes from './routes/menuRoutes.js';
+import orderRoutes from './routes/orderRoutes.js';
+import adminRoutes from './routes/adminRoutes.js';
+
+app.use('/api/menus', menuRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/admin', adminRoutes);
 
 // 404 핸들러
 app.use((req, res) => {
