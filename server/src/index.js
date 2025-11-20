@@ -21,7 +21,14 @@ if (isNaN(PORT) || PORT < 1 || PORT > 65535) {
 }
 
 // 미들웨어 설정
-app.use(cors()); // CORS 허용
+// CORS 설정: 프로덕션에서는 모든 origin 허용, 개발 환경에서는 localhost만 허용
+const corsOptions = {
+  origin: process.env.NODE_ENV === 'production' 
+    ? true  // 프로덕션: 모든 origin 허용 (또는 특정 도메인 배열 지정)
+    : 'http://localhost:5173',  // 개발: localhost만 허용
+  credentials: true
+};
+app.use(cors(corsOptions));
 app.use(express.json()); // JSON 파싱
 app.use(express.urlencoded({ extended: true })); // URL 인코딩된 데이터 파싱
 

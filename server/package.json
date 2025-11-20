@@ -4,6 +4,9 @@
   "description": "커피 주문 앱 백엔드 서버",
   "main": "src/index.js",
   "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
