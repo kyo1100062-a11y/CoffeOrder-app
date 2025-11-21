@@ -11,6 +11,8 @@ lerna-debug.log*
 .env
 .env.local
 .env.*.local
+# .env.production은 배포를 위해 Git에 포함 (선택사항)
+# .env.production
 
 node_modules
 dist
