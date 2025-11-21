@@ -7,6 +7,7 @@ import { getMenus } from './api/menuApi.js';
 import { createOrder } from './api/orderApi.js';
 import { getStock, getOrders, getDashboard } from './api/adminApi.js';
 import './App.css';
+import './utils/debugApi.js'; // 디버깅 유틸리티 로드
 
 function App() {
   const [currentPage, setCurrentPage] = useState('order');

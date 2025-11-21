@@ -21,13 +21,32 @@ if (isNaN(PORT) || PORT < 1 || PORT > 65535) {
 }
 
 // 미들웨어 설정
-// CORS 설정: 프로덕션에서는 모든 origin 허용, 개발 환경에서는 localhost만 허용
+// CORS 설정: 허용할 origin 목록
+const allowedOrigins = [
+  'http://localhost:5173',              // 로컬 개발용
+  'https://coffeorder-app.onrender.com' // 프런트엔드 배포 주소
+];
+
 const corsOptions = {
-  origin: process.env.NODE_ENV === 'production' 
-    ? true  // 프로덕션: 모든 origin 허용 (또는 특정 도메인 배열 지정)
-    : 'http://localhost:5173',  // 개발: localhost만 허용
-  credentials: true
+  origin: function (origin, callback) {
+    // origin이 없으면 (같은 도메인 요청 등) 허용
+    if (!origin) {
+      return callback(null, true);
+    }
+    
+    // 허용된 origin 목록에 있는지 확인
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.warn(`⚠️  CORS 차단: ${origin}은(는) 허용되지 않은 origin입니다.`);
+      callback(new Error('CORS 정책에 의해 차단되었습니다.'));
+    }
+  },
+  credentials: true, // 쿠키 및 인증 정보 허용
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 };
+
 app.use(cors(corsOptions));
 app.use(express.json()); // JSON 파싱
 app.use(express.urlencoded({ extended: true })); // URL 인코딩된 데이터 파싱
