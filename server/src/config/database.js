@@ -57,6 +57,10 @@ if (process.env.DATABASE_URL) {
     database: process.env.DB_NAME,
     user: process.env.DB_USER,
     password: String(process.env.DB_PASSWORD), // 명시적으로 문자열로 변환
+    // Render PostgreSQL은 SSL이 필요합니다
+    ssl: process.env.DB_HOST && !process.env.DB_HOST.includes('localhost') 
+      ? { rejectUnauthorized: false } 
+      : false
   };
   console.log('✅ 개별 환경 변수를 사용하여 데이터베이스 연결 설정');
 }

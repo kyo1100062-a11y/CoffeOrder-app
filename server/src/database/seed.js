@@ -63,7 +63,7 @@ const seedData = async () => {
     const insertedMenus = [];
     for (const menu of menuQueries) {
       const result = await pool.query(
-        'INSERT INTO menus (name, description, price, imageUrl, stock) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+        'INSERT INTO menus (name, description, price, "imageUrl", stock) VALUES ($1, $2, $3, $4, $5) RETURNING id',
         [menu.name, menu.description, menu.price, menu.imageUrl, menu.stock]
       );
       insertedMenus.push({ id: result.rows[0].id, ...menu });
@@ -72,11 +72,11 @@ const seedData = async () => {
     // 옵션 데이터 삽입 (모든 메뉴에 동일한 옵션 추가)
     for (const menu of insertedMenus) {
       await pool.query(
-        'INSERT INTO options (name, price, menuId) VALUES ($1, $2, $3)',
+        'INSERT INTO options (name, price, "menuId") VALUES ($1, $2, $3)',
         ['샷 추가', 500, menu.id]
       );
       await pool.query(
-        'INSERT INTO options (name, price, menuId) VALUES ($1, $2, $3)',
+        'INSERT INTO options (name, price, "menuId") VALUES ($1, $2, $3)',
         ['시럽 추가', 0, menu.id]
       );
     }

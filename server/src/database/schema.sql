@@ -70,6 +70,11 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
+-- 기존 트리거 삭제 (있는 경우)
+DROP TRIGGER IF EXISTS update_menus_updated_at ON menus;
+DROP TRIGGER IF EXISTS update_options_updated_at ON options;
+DROP TRIGGER IF EXISTS update_orders_updated_at ON orders;
+
 -- updatedAt 트리거 생성
 CREATE TRIGGER update_menus_updated_at BEFORE UPDATE ON menus
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
